@@ -33,11 +33,20 @@ include_directories(
   include
 )
 
-add_library(allegro_hand_driver
-  src/AllegroHandDrv.cpp
-  src/candrv/pcan.cpp
-)
-
+set(CANDRV "SOCKETCAN" CACHE STRING "PEAKCAN|SOCKETCAN")
+if (CANDRV STREQUAL "PEAKCAN")
+  add_library(allegro_hand_driver
+    src/AllegroHandDrv.cpp
+    src/candrv/pcan.cpp
+  )
+elseif(CANDRV STREQUAL "SOCKETCAN")
+  add_library(allegro_hand_driver
+    src/AllegroHandDrv.cpp
+    src/candrv/socket_can.cpp
+  )
+else()
+  message(FATAL_ERROR "CANDRV must be PEAKCAN|SOCKETCAN" )
+endif()
 #############
 ## Install ##
 #############
