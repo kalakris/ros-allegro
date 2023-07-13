@@ -178,7 +178,7 @@ int canSendMsg(void* ch, int id, char len, unsigned char *data, int blocking, in
         return -1;
     }
     if (blocking || timeout_usec < 0) {
-        ROS_ERROR("Socket CAN does not support blocking send, proceeed with nonblocking");
+        ROS_WARN_ONCE("Socket CAN does not support blocking send, proceeed with nonblocking");
     }
     return 0;
 }
@@ -194,7 +194,7 @@ int canSentRTR(void* ch, int id, int blocking, int timeout_usec){
         return -1;
     }
     if (blocking || timeout_usec < 0) {
-        ROS_ERROR("Socket CAN does not support blocking send, proceeed with nonblocking");
+        ROS_WARN_ONCE("Socket CAN does not support blocking send, proceeed with nonblocking");
     }
     return 0;
 }
