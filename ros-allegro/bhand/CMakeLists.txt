@@ -20,9 +20,10 @@ catkin_package(
 ###########
 
 # NOTE: You can switch to 32 bit if necessary by updating the symbolic link.
-find_library(BHAND_LIB
-    NAMES BHand
-    PATHS lib
+find_file(BHAND_LIB
+    NAMES libBHand.so
+    PATHS "${CMAKE_CURRENT_LIST_DIR}/lib"
+    NO_CMAKE_FIND_ROOT_PATH
 )
 
 # Make a tricky BHand target that just copies the .so binary file into the
@@ -37,7 +38,7 @@ set_target_properties(BHand PROPERTIES LINKER_LANGUAGE CXX)
 #############
 
 ## Mark header files for installation
-install(DIRECTORY include/bhand
+install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h"
 )

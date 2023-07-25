@@ -1,0 +1,26 @@
+# vinca.yaml
+ros_distro: noetic
+
+# optionally, a fat archive can be generated too.
+fat_archive: true
+name: ros-eloquent-fat-ament-cmake
+
+# mapping of rosdep keys
+# it can be also used to shadow the unwanted packages.
+conda_index:
+  - 'https://raw.githubusercontent.com/RoboStack/ros-noetic/master/robostack.yaml'
+
+# packages to skip
+packages_skip_by_deps:
+
+skip_existing:
+  - https://conda.anaconda.org/robostack/
+
+# packages to include
+packages_select_by_deps:
+  - allegro_hand_driver
+  - allegro_hand_controller
+
+# patch directory
+patch_dir: ./patch
+

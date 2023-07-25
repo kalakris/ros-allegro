@@ -69,3 +69,20 @@ Make sure `rostopic list` will display something like:
 /allegroHand_0/joint_states
 /allegroHand_0/lib_cmd
 ```
+
+# BUILD Conda package
+* reference https://medium.com/robostack/cross-platform-conda-packages-for-ros-fa1974fd1de3
+
+```
+  mkdir build; cd build;
+
+  # generate conda recipe with vinca
+  pip install git+https://github.com/RoboStack/vinca.git
+  vinca -p ../*/*/package.xml -d ..
+
+  # build conda pacakge
+  boa build ..
+
+  # upload to conda-forge
+  ../build_conda.sh
+k```

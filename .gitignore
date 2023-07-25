@@ -149,3 +149,4 @@ _cache_*
 *.svn/
 *.pdf
 *.npy
+recipe.yaml
