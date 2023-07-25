@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "stdexcept": "cpp"
+    },
+    "cmake.cmakePath": "/home/robotdev/mambaforge-pypy3/envs/gum_ros/bin/cmake"
+}
