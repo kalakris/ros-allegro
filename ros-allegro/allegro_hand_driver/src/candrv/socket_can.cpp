@@ -96,8 +96,6 @@ int canSentRTR(void* ch, int id, int blocking, int timeout_usec);
 /*       Public functions (CAN API)       */
 /*========================================*/
 int socket_;
-
-
 void printMsg(const can_frame &msg) {
   RCLCPP_WARN(rclcpp::get_logger(__FILE__), "msg: {%X}, %c", msg.can_id, msg.can_dlc);
 }
