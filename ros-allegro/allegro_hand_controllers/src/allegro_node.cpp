@@ -5,6 +5,7 @@
 
 #include "allegro_node.h"
 #include "allegro_hand_driver/AllegroHandDrv.h"
+#include <unistd.h>
 
 std::string jointNames[DOF_JOINTS] =
         {
@@ -20,7 +21,7 @@ AllegroNode::AllegroNode(const std::string nodeName, bool sim /* = false */)
          rclcpp::NodeOptions().allow_undeclared_parameters(true)
                               .automatically_declare_parameters_from_overrides(true))
 {
-  mutex = new boost::mutex();
+  mutex = new std::mutex();
   
   // Create arrays 16 long for each of the four joint state components
   current_joint_state.position.resize(DOF_JOINTS);

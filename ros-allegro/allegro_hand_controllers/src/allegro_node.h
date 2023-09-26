@@ -12,8 +12,6 @@ using namespace allegro;
 #include <string>
 #include <chrono>
 
-#include <boost/thread/thread.hpp>
-
 #include <rclcpp/rclcpp.hpp>
 // #include <ros/ros.h>
 #include "sensor_msgs/msg/joint_state.hpp"
@@ -85,7 +83,7 @@ class AllegroNode: public rclcpp::Node {
 
   // CAN device
   allegro::AllegroHandDrv *canDevice;
-  boost::mutex *mutex;
+  std::mutex *mutex;
 
   // Flags
   int lEmergencyStop = 0;

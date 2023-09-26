@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${env:CONDA_PREFIX}/**"
+                "/home/robotdev/micromamba/envs/_ros2_env/**"
             ],
             "defines": [],
             "cStandard": "c17",
