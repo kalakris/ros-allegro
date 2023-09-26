@@ -72,12 +72,13 @@ $ ros2 topic list
 ```
 # work dir
 mkdir conda_build; cd conda_build;
-# rm -rf $CONDA_PREFIX/conda-bld  # remove old conda bld repo if nee
 
-# generate conda recipe with vinca (or simple use recipe.yaml)
-pip install git+https://github.com/RoboStack/vinca.git
-mamba install -c conda-forge boa anaconda-client
+# generate conda recipe with vinca (or link the recipe.yaml provided in repo root)
+# pip install git+https://github.com/RoboStack/vinca.git
 vinca -p '../*/*/package.xml' -d ..
+cp ../recipe.yaml .
+cp ../build_catkin.sh .
+
 
 # setup additional channels
 conda config --add channels conda-forge
@@ -85,11 +86,14 @@ conda config --add channels robostack-staging
 conda config --add channels tingfan
 
 # build conda pacakge
+mamba install -c conda-forge boa
+# rm -rf $CONDA_PREFIX/conda-bld  # remove old conda bld repo if nee
 boa build ..
 
 # check built packages
 ls $CONDA_PREFIX/conda-bld/linux-64/*tar.bz2
 
 # upload to conda-forge
+mamba install -c conda-forge anaconda-client
 anaconda upload $CONDA_PREFIX/conda-bld/linux-64/*tar.bz2
 ```
