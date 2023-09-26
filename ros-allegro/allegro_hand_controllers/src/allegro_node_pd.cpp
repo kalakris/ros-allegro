@@ -3,7 +3,7 @@ using namespace std;
 #include "allegro_node_pd.h"
 #include <stdio.h>
 
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #define RADIANS_TO_DEGREES(radians) ((radians) * (180.0 / M_PI))
 #define DEGREES_TO_RADIANS(angle) ((angle) / 180.0 * M_PI)
@@ -74,26 +74,26 @@ std::string initialPosition[DOF_JOINTS] =
         };
 
 // Constructor subscribes to topics.
-AllegroNodePD::AllegroNodePD()
-        : AllegroNode() {
+AllegroNodePD::AllegroNodePD(const std::string nodeName)
+  : AllegroNode(nodeName) {
   control_hand_ = false;
 
   initController(whichHand);
 
-  lib_cmd_sub = nh.subscribe(
-          LIB_CMD_TOPIC, 1, &AllegroNodePD::libCmdCallback, this);
+  lib_cmd_sub = create_subscription<std_msgs::msg::String>(
+          LIB_CMD_TOPIC, 1, std::bind(&AllegroNodePD::libCmdCallback, this, std::placeholders::_1));
 
-  joint_cmd_sub = nh.subscribe(
-          DESIRED_STATE_TOPIC, 1, &AllegroNodePD::setJointCallback, this);
+  joint_cmd_sub = create_subscription<sensor_msgs::msg::JointState>(
+          DESIRED_STATE_TOPIC, 1, std::bind(&AllegroNodePD::setJointCallback, this, std::placeholders::_1));
 }
 
 AllegroNodePD::~AllegroNodePD() {
-  ROS_INFO("PD controller node is shutting down");
+  RCLCPP_INFO(get_logger(), "PD controller node is shutting down");
 }
 
 // Called when an external (string) message is received
-void AllegroNodePD::libCmdCallback(const std_msgs::String::ConstPtr &msg) {
-  ROS_INFO("CTRL: Heard: [%s]", msg->data.c_str());
+void AllegroNodePD::libCmdCallback(const std_msgs::msg::String::SharedPtr msg) {
+  RCLCPP_INFO(get_logger(), "CTRL: Heard: [%s]", msg->data.c_str());
 
   const std::string lib_cmd = msg->data.c_str();
 
@@ -123,8 +123,8 @@ void AllegroNodePD::libCmdCallback(const std_msgs::String::ConstPtr &msg) {
   }
 }
 
-void AllegroNodePD::setJointCallback(const sensor_msgs::JointState &msg) {
-  ROS_WARN_COND(!control_hand_, "Setting control_hand_ to True because of "
+void AllegroNodePD::setJointCallback(const sensor_msgs::msg::JointState::SharedPtr msg) {
+  RCLCPP_WARN_EXPRESSION(get_logger(), !control_hand_, "Setting control_hand_ to True because of "
                 "received JointState message");
   control_hand_ = true;
 }
@@ -146,7 +146,7 @@ void AllegroNodePD::computeDesiredTorque() {
   // message, do nothing.
   if (desired_joint_state.position.size() > 0 &&
       desired_joint_state.effort.size() > 0) {
-    ROS_WARN("Error: both positions and torques are specified in the desired "
+    RCLCPP_WARN(get_logger(), "Error: both positions and torques are specified in the desired "
                      "state. You cannot control both at the same time.");
     return;
   }
@@ -177,36 +177,37 @@ void AllegroNodePD::computeDesiredTorque() {
 
 void AllegroNodePD::initController(const std::string &whichHand) {
   // set gains_pd via gains_pd.yaml or to default values
-  if (ros::param::has("~gains_pd")) {
-    ROS_INFO("CTRL: PD gains loaded from param server.");
+  if (has_parameter("~gains_pd")) {
+    RCLCPP_INFO(this->get_logger(), "CTRL: PD gains loaded from param server.");
     for (int i = 0; i < DOF_JOINTS; i++) {
-      ros::param::get(pGainParams[i], k_p[i]);
-      ros::param::get(dGainParams[i], k_d[i]);
+      k_p[i] = get_parameter(pGainParams[i]).as_double();
+      k_d[i] = get_parameter(dGainParams[i]).as_double();
+      RCLCPP_INFO(get_logger(), "gains_pd[%d]=%f", i,  k_p[i]);
     }
   }
   else {
     // gains will be loaded every control iteration
-    ROS_WARN("CTRL: PD gains not loaded");
-    ROS_WARN("Check launch file is loading /parameters/gains_pd.yaml");
-    ROS_WARN("Loading default PD gains...");
+    RCLCPP_WARN(get_logger(),"CTRL: PD gains not loaded");
+    RCLCPP_WARN(get_logger(),"Check launch file is loading /parameters/gains_pd.yaml");
+    RCLCPP_WARN(get_logger(),"Loading default PD gains...");
   }
 
   // set initial position via initial_position.yaml or to default values
-  if (ros::param::has("~initial_position")) {
-    ROS_INFO("CTRL: Initial Pose loaded from param server.");
+  if (has_parameter("~initial_position")) {
+    RCLCPP_INFO(get_logger(), "CTRL: Initial Pose loaded from param server.");
     double tmp;
     mutex->lock();
     desired_joint_state.position.resize(DOF_JOINTS);
     for (int i = 0; i < DOF_JOINTS; i++) {
-      ros::param::get(initialPosition[i], tmp);
+      tmp = get_parameter(initialPosition[i]).as_double();
       desired_joint_state.position[i] = DEGREES_TO_RADIANS(tmp);
     }
     mutex->unlock();
   }
   else {
-    ROS_WARN("CTRL: Initial position not loaded.");
-    ROS_WARN("Check launch file is loading /parameters/initial_position.yaml");
-    ROS_WARN("Loading Home position instead...");
+    RCLCPP_WARN(get_logger(),"CTRL: Initial position not loaded.");
+    RCLCPP_WARN(get_logger(),"Check launch file is loading /parameters/initial_position.yaml");
+    RCLCPP_WARN(get_logger(),"Loading Home position instead...");
 
     // Home position
     mutex->lock();
@@ -226,29 +227,30 @@ void AllegroNodePD::initController(const std::string &whichHand) {
 
 void AllegroNodePD::doIt(bool polling) {
   // Main spin loop, uses the publisher/subscribers.
-  ros::Rate rate(300);
+  auto this_node = std::shared_ptr<AllegroNodePD>(this);
+  rclcpp::Rate rate(300);
   if (polling) {
-    ROS_INFO("Polling = true.");
-    while (ros::ok()) {
+    RCLCPP_INFO(get_logger(), "Polling = true.");
+    while (rclcpp::ok()) {
       updateController();
-      ros::spinOnce();
+      rclcpp::spin_some(this_node);
       rate.sleep();
     }
   } else {
-    ROS_INFO("Polling = false.");
+    RCLCPP_INFO(get_logger(), "Polling = false.");
 
     // Timer callback (not recommended).
-    ros::Timer timer = startTimerCallback();
-    ros::spin();
+    rclcpp::TimerBase::SharedPtr timer = startTimerCallback();
+    rclcpp::spin(this_node);
   }
 }
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "allegro_hand_core_pd");
-  AllegroNodePD allegroNode;
+  auto clean_argv = rclcpp::init_and_remove_ros_arguments(argc, argv); 
+  AllegroNodePD allegroNode("allegro_hand_core_pd");
 
   bool polling = false;
-  if (argv[1] == std::string("true")) {
+  if (clean_argv.size() > 1 && clean_argv[1] == std::string("true")) {
     polling = true;
   }
   allegroNode.doIt(polling);

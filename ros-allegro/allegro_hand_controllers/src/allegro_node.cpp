@@ -15,7 +15,11 @@ std::string jointNames[DOF_JOINTS] =
         };
 
 
-AllegroNode::AllegroNode(bool sim /* = false */) {
+AllegroNode::AllegroNode(const std::string nodeName, bool sim /* = false */)
+  : Node(nodeName,
+         rclcpp::NodeOptions().allow_undeclared_parameters(true)
+                              .automatically_declare_parameters_from_overrides(true))
+{
   mutex = new boost::mutex();
   
   // Create arrays 16 long for each of the four joint state components
@@ -39,18 +43,32 @@ AllegroNode::AllegroNode(bool sim /* = false */) {
   // This information is found in the Hand-specific "zero.yaml" file from the allegro_hand_description package
   std::string robot_name, manufacturer, origin, serial;
   double version;
-  ros::param::get("~hand_info/robot_name", robot_name);
-  ros::param::get("~hand_info/which_hand", whichHand);
-  ros::param::get("~hand_info/manufacturer", manufacturer);
-  ros::param::get("~hand_info/origin", origin);
-  ros::param::get("~hand_info/serial", serial);
-  ros::param::get("~hand_info/version", version);
+
+  declare_parameter("hand_info/robot_name", "metahand");
+  robot_name = get_parameter("hand_info/robot_name").as_string();
+
+  declare_parameter("hand_info/which_hand", "Right");
+  whichHand = get_parameter("hand_info/which_hand").as_string();
+
+  declare_parameter("hand_info/manufacturer", "manu");
+  manufacturer = get_parameter("hand_info/manufacturer").as_string();
+
+  declare_parameter("hand_info/origin", "origin");
+  origin = get_parameter  ("hand_info/origin").as_string();
+
+  declare_parameter("hand_info/serial", "serial");
+  serial = get_parameter("hand_info/serial").as_string();
+
+  declare_parameter("hand_info/version", 4.0);
+  version = get_parameter("hand_info/version").as_double();
 
   // Initialize CAN device
   canDevice = 0;
   if(!sim) {
     canDevice = new allegro::AllegroHandDrv();
-    if (canDevice->init()) {
+    declare_parameter("comm/CAN_CH", "can0");
+    auto can_ch = this->get_parameter("comm/CAN_CH").as_string();
+    if (canDevice->init(can_ch)) {
         usleep(3000);
     }
     else {
@@ -60,24 +78,24 @@ AllegroNode::AllegroNode(bool sim /* = false */) {
   }
 
   // Start ROS time
-  tstart = ros::Time::now();
+  tstart = rclcpp::Clock(RCL_STEADY_TIME).now();
   
   // Advertise current joint state publisher and subscribe to desired joint
   // states.
-  joint_state_pub = nh.advertise<sensor_msgs::JointState>(JOINT_STATE_TOPIC, 3);
-  joint_cmd_sub = nh.subscribe(DESIRED_STATE_TOPIC, 1, // queue size
-                                &AllegroNode::desiredStateCallback, this);
+  joint_state_pub = this->create_publisher<sensor_msgs::msg::JointState>(JOINT_STATE_TOPIC, 3);
+  joint_cmd_sub = this->create_subscription<sensor_msgs::msg::JointState>(DESIRED_STATE_TOPIC, 1, // queue size
+                                 std::bind(&AllegroNode::desiredStateCallback, this, std::placeholders::_1));
 }
 
 AllegroNode::~AllegroNode() {
   if (canDevice) delete canDevice;
   delete mutex;
-  nh.shutdown();
+  rclcpp::shutdown();
 }
 
-void AllegroNode::desiredStateCallback(const sensor_msgs::JointState &msg) {
+void AllegroNode::desiredStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg) {
   mutex->lock();
-  desired_joint_state = msg;
+  desired_joint_state = *msg;
   mutex->unlock();
 }
 
@@ -89,19 +107,19 @@ void AllegroNode::publishData() {
     current_joint_state.velocity[i] = current_velocity_filtered[i];
     current_joint_state.effort[i] = desired_torque[i];
   }
-  joint_state_pub.publish(current_joint_state);
+  joint_state_pub->publish(current_joint_state);
 }
 
 void AllegroNode::updateController() {
 
   // Calculate loop time;
-  tnow = ros::Time::now();
-  dt = 1e-9 * (tnow - tstart).nsec;
+  tnow = rclcpp::Clock{RCL_STEADY_TIME}.now();
+  dt = 1e-9 * (tnow - tstart).nanoseconds();
 
   // When running gazebo, sometimes the loop gets called *too* often and dt will
   // be zero. Ensure nothing bad (like divide-by-zero) happens because of this.
   if(dt <= 0) {
-    ROS_DEBUG_STREAM_THROTTLE(1, "AllegroNode::updateController dt is zero.");
+    RCLCPP_DEBUG_STREAM_THROTTLE(rclcpp::get_logger("allegro_node"), *get_clock(), 1, "AllegroNode::updateController dt is zero.");
     return;
   }
 
@@ -158,18 +176,19 @@ void AllegroNode::updateController() {
 
   if (lEmergencyStop < 0) {
     // Stop program when Allegro Hand is switched off
-    ROS_ERROR("Allegro Hand Node is Shutting Down! (Emergency Stop)");
-    ros::shutdown();
+    RCLCPP_ERROR(rclcpp::get_logger("allegro_node"),"Allegro Hand Node is Shutting Down! (Emergency Stop)");
+    rclcpp::shutdown();
   }
 }
 
 // Interrupt-based control is not recommended by SimLab. I have not tested it.
-void AllegroNode::timerCallback(const ros::TimerEvent &event) {
+void AllegroNode::timerCallback() {
   updateController();
 }
 
-ros::Timer AllegroNode::startTimerCallback() {
-  ros::Timer timer = nh.createTimer(ros::Duration(0.001),
-                                    &AllegroNode::timerCallback, this);
+using namespace std::chrono_literals; 
+
+rclcpp::TimerBase::SharedPtr AllegroNode::startTimerCallback() {
+  auto timer = this->create_wall_timer(1ms, std::bind(&AllegroNode::timerCallback, this));
   return timer;
 }

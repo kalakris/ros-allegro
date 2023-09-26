@@ -6,15 +6,20 @@
 #define PROJECT_ALLEGRO_NODE_COMMON_H
 
 // Defines DOF_JOINTS.
-#include "allegro_hand_driver/AllegroHandDrv.h"
+#include <allegro_hand_driver/AllegroHandDrv.h>
 using namespace allegro;
 
 #include <string>
+#include <chrono>
+
 #include <boost/thread/thread.hpp>
 
-#include "ros/ros.h"
-#include "sensor_msgs/JointState.h"
-#include "std_msgs/String.h"
+#include <rclcpp/rclcpp.hpp>
+// #include <ros/ros.h>
+#include "sensor_msgs/msg/joint_state.hpp"
+#include "std_msgs/msg/string.hpp"
+
+
 
 // Forward declaration.
 class AllegroHandDrv;
@@ -26,28 +31,28 @@ const std::string JOINT_STATE_TOPIC = "allegroHand/joint_states";
 const std::string DESIRED_STATE_TOPIC = "allegroHand/joint_cmd";
 const std::string LIB_CMD_TOPIC = "allegroHand/lib_cmd";
 
-class AllegroNode {
+class AllegroNode: public rclcpp::Node {
  public:
 
-  AllegroNode(bool sim = false);
+  AllegroNode(const std::string nodeName, bool sim = false);
 
   virtual ~AllegroNode();
 
   void publishData();
 
-  void desiredStateCallback(const sensor_msgs::JointState &desired);
+  void desiredStateCallback(const sensor_msgs::msg::JointState::SharedPtr desired);
 
   virtual void updateController();
 
   // This is the main method that must be implemented by the various
   // controller nodes.
   virtual void computeDesiredTorque() {
-    ROS_ERROR("Called virtual function!");
+    RCLCPP_ERROR(rclcpp::get_logger("allegro_node"), "Called virtual function!");
   };
 
-  ros::Timer startTimerCallback();
+  rclcpp::TimerBase::SharedPtr startTimerCallback();
 
-  void timerCallback(const ros::TimerEvent &event);
+  void timerCallback();
 
  protected:
 
@@ -66,17 +71,16 @@ class AllegroNode {
   std::string whichHand;  // Right or left hand.
 
   // ROS stuff
-  ros::NodeHandle nh;
-  ros::Publisher joint_state_pub;
-  ros::Subscriber joint_cmd_sub;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_cmd_sub;
 
   // Store the current and desired joint states.
-  sensor_msgs::JointState current_joint_state;
-  sensor_msgs::JointState desired_joint_state;
+  sensor_msgs::msg::JointState current_joint_state;
+  sensor_msgs::msg::JointState desired_joint_state;
 
   // ROS Time
-  ros::Time tstart;
-  ros::Time tnow;
+  rclcpp::Time tstart;
+  rclcpp::Time tnow;
   double dt;
 
   // CAN device
