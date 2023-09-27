@@ -106,7 +106,6 @@ mkdir conda_build; cd conda_build;
 # pip install git+https://github.com/RoboStack/vinca.git
 vinca -p '../*/*/package.xml' -d ..
 cp ../recipe.yaml .
-cp ../build_catkin.sh .
 
 
 # setup additional channels

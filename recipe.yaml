@@ -1,6 +1,6 @@
 package:
   name: ros
-  version: 2023.09.26
+  version: 2023.09.27
 
 source:
   - path: ../ros-allegro/allegro_hand_controllers
@@ -36,8 +36,8 @@ outputs:
     build:
       number: 0
       script:
-        sel(win): bld_catkin.bat
         sel(unix): build_catkin.sh
+        sel(win): build_catkin.bat
     requirements:
       build:
         - "{{ compiler('cxx') }}"
@@ -54,18 +54,23 @@ outputs:
         - sel(build_platform != target_platform): pybind11
       host:
         - ros-humble-ament-cmake
+        - ros-humble-ament-cmake-python
         - ros-humble-allegro-hand-driver
         - ros-humble-rclcpp
+        - ros-humble-rclpy
         - ros-humble-sensor-msgs
         - ros-humble-allegro-hand-driver
         - ros-humble-rclcpp
+        - ros-humble-rclpy
         - ros-humble-sensor-msgs
       run:
         - ros-humble-allegro-hand-driver
         - ros-humble-rclcpp
+        - ros-humble-rclpy
         - ros-humble-sensor-msgs
         - ros-humble-allegro-hand-driver
         - ros-humble-rclcpp
+        - ros-humble-rclpy
         - ros-humble-sensor-msgs
   - package:
       name: ros-humble-allegro-hand-driver
@@ -81,8 +86,8 @@ outputs:
     build:
       number: 0
       script:
-        sel(win): bld_catkin.bat
         sel(unix): build_catkin.sh
+        sel(win): build_catkin.bat
     requirements:
       build:
         - "{{ compiler('cxx') }}"
@@ -101,6 +106,14 @@ outputs:
         - ros-humble-ament-cmake
         - ros-humble-rclcpp
         - ros-humble-std-msgs
+        - ros-humble-sensor-msgs
+        - ros-humble-rclcpp
+        - ros-humble-std-msgs
+        - ros-humble-sensor-msgs
       run:
         - ros-humble-rclcpp
         - ros-humble-std-msgs
+        - ros-humble-sensor-msgs
+        - ros-humble-rclcpp
+        - ros-humble-std-msgs
+        - ros-humble-sensor-msgs

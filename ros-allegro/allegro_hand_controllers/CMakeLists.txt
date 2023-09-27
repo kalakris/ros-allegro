@@ -19,7 +19,7 @@ find_package(sensor_msgs REQUIRED)
 
 include_directories(${allegro_hand_driver_INCLUDE_DIRS})
 
-add_library(allegro_node src/allegro_node.cpp)
+add_library(allegro_node STATIC src/allegro_node.cpp)
 ament_target_dependencies(
   allegro_node rclcpp sensor_msgs allegro_hand_driver
 )
