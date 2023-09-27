@@ -55,6 +55,19 @@ ros2 run allegro_hand_controllers allegro_node_pd
 >CAN(0): AllegroHand serial number: SAH040 091R
 ```
 
+### Parameters
+#### Dump parameters from code
+```
+# launch the node in simulation mode, so no physical CAN device is needed
+$ ros2 run allegro_hand_controllers allegro_node_pd --sim
+$ ros2 param dump /allegro_node_pd > allegro_hand_params.yaml
+```
+
+#### Launch with Parameters
+```
+$ ros2 run allegro_hand_controllers allegro_node_pd --ros-args --params-file allegro_hand_params.yaml
+```
+
 ### Instructions
 
 Can use `ros2 topic list` to monitor the ROS topics.

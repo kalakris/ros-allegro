@@ -17,9 +17,7 @@ std::string jointNames[DOF_JOINTS] =
 
 
 AllegroNode::AllegroNode(const std::string nodeName, bool sim /* = false */)
-  : Node(nodeName,
-         rclcpp::NodeOptions().allow_undeclared_parameters(true)
-                              .automatically_declare_parameters_from_overrides(true))
+  : Node(nodeName)
 {
   mutex = new std::mutex();
   

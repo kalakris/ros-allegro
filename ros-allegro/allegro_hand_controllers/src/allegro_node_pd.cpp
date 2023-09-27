@@ -35,47 +35,47 @@ double home_pose[DOF_JOINTS] =
 
 std::string pGainParams[DOF_JOINTS] =
         {
-                "~gains_pd/p/j00", "~gains_pd/p/j01", "~gains_pd/p/j02",
-                "~gains_pd/p/j03",
-                "~gains_pd/p/j10", "~gains_pd/p/j11", "~gains_pd/p/j12",
-                "~gains_pd/p/j13",
-                "~gains_pd/p/j20", "~gains_pd/p/j21", "~gains_pd/p/j22",
-                "~gains_pd/p/j23",
-                "~gains_pd/p/j30", "~gains_pd/p/j31", "~gains_pd/p/j32",
-                "~gains_pd/p/j33"
+                "gains_pd/p/j00", "gains_pd/p/j01", "gains_pd/p/j02",
+                "gains_pd/p/j03",
+                "gains_pd/p/j10", "gains_pd/p/j11", "gains_pd/p/j12",
+                "gains_pd/p/j13",
+                "gains_pd/p/j20", "gains_pd/p/j21", "gains_pd/p/j22",
+                "gains_pd/p/j23",
+                "gains_pd/p/j30", "gains_pd/p/j31", "gains_pd/p/j32",
+                "gains_pd/p/j33"
         };
 
 std::string dGainParams[DOF_JOINTS] =
         {
-                "~gains_pd/d/j00", "~gains_pd/d/j01", "~gains_pd/d/j02",
-                "~gains_pd/d/j03",
-                "~gains_pd/d/j10", "~gains_pd/d/j11", "~gains_pd/d/j12",
-                "~gains_pd/d/j13",
-                "~gains_pd/d/j20", "~gains_pd/d/j21", "~gains_pd/d/j22",
-                "~gains_pd/d/j23",
-                "~gains_pd/d/j30", "~gains_pd/d/j31", "~gains_pd/d/j32",
-                "~gains_pd/d/j33"
+                "gains_pd/d/j00", "gains_pd/d/j01", "gains_pd/d/j02",
+                "gains_pd/d/j03",
+                "gains_pd/d/j10", "gains_pd/d/j11", "gains_pd/d/j12",
+                "gains_pd/d/j13",
+                "gains_pd/d/j20", "gains_pd/d/j21", "gains_pd/d/j22",
+                "gains_pd/d/j23",
+                "gains_pd/d/j30", "gains_pd/d/j31", "gains_pd/d/j32",
+                "gains_pd/d/j33"
         };
 
 std::string initialPosition[DOF_JOINTS] =
         {
-                "~initial_position/j00", "~initial_position/j01",
-                "~initial_position/j02",
-                "~initial_position/j03",
-                "~initial_position/j10", "~initial_position/j11",
-                "~initial_position/j12",
-                "~initial_position/j13",
-                "~initial_position/j20", "~initial_position/j21",
-                "~initial_position/j22",
-                "~initial_position/j23",
-                "~initial_position/j30", "~initial_position/j31",
-                "~initial_position/j32",
-                "~initial_position/j33"
+                "initial_position/j00", "initial_position/j01",
+                "initial_position/j02",
+                "initial_position/j03",
+                "initial_position/j10", "initial_position/j11",
+                "initial_position/j12",
+                "initial_position/j13",
+                "initial_position/j20", "initial_position/j21",
+                "initial_position/j22",
+                "initial_position/j23",
+                "initial_position/j30", "initial_position/j31",
+                "initial_position/j32",
+                "initial_position/j33"
         };
 
 // Constructor subscribes to topics.
-AllegroNodePD::AllegroNodePD(const std::string nodeName)
-  : AllegroNode(nodeName) {
+AllegroNodePD::AllegroNodePD(const std::string nodeName, bool sim)
+  : AllegroNode(nodeName, sim) {
   control_hand_ = false;
 
   initController(whichHand);
@@ -177,45 +177,32 @@ void AllegroNodePD::computeDesiredTorque() {
 
 void AllegroNodePD::initController(const std::string &whichHand) {
   // set gains_pd via gains_pd.yaml or to default values
-  if (has_parameter("~gains_pd")) {
-    RCLCPP_INFO(this->get_logger(), "CTRL: PD gains loaded from param server.");
-    for (int i = 0; i < DOF_JOINTS; i++) {
-      k_p[i] = get_parameter(pGainParams[i]).as_double();
-      k_d[i] = get_parameter(dGainParams[i]).as_double();
-      RCLCPP_INFO(get_logger(), "gains_pd[%d]=%f", i,  k_p[i]);
-    }
+  for (int i = 0; i < DOF_JOINTS; i++) {
+    declare_parameter(pGainParams[i], k_p[i]);
+    declare_parameter(dGainParams[i], k_d[i]);
   }
-  else {
-    // gains will be loaded every control iteration
-    RCLCPP_WARN(get_logger(),"CTRL: PD gains not loaded");
-    RCLCPP_WARN(get_logger(),"Check launch file is loading /parameters/gains_pd.yaml");
-    RCLCPP_WARN(get_logger(),"Loading default PD gains...");
+
+  for (int i = 0; i < DOF_JOINTS; i++) {
+    k_p[i] = get_parameter(pGainParams[i]).as_double();
+    k_d[i] = get_parameter(dGainParams[i]).as_double();
+    RCLCPP_INFO(get_logger(), "gains_p[%d]=%f %f", i,  k_p[i], k_d[i]);
   }
 
   // set initial position via initial_position.yaml or to default values
-  if (has_parameter("~initial_position")) {
-    RCLCPP_INFO(get_logger(), "CTRL: Initial Pose loaded from param server.");
-    double tmp;
-    mutex->lock();
-    desired_joint_state.position.resize(DOF_JOINTS);
-    for (int i = 0; i < DOF_JOINTS; i++) {
-      tmp = get_parameter(initialPosition[i]).as_double();
-      desired_joint_state.position[i] = DEGREES_TO_RADIANS(tmp);
-    }
-    mutex->unlock();
+  for (int i = 0; i < DOF_JOINTS; i++) {
+    declare_parameter(initialPosition[i], home_pose[i]);
   }
-  else {
-    RCLCPP_WARN(get_logger(),"CTRL: Initial position not loaded.");
-    RCLCPP_WARN(get_logger(),"Check launch file is loading /parameters/initial_position.yaml");
-    RCLCPP_WARN(get_logger(),"Loading Home position instead...");
 
-    // Home position
-    mutex->lock();
-    desired_joint_state.position.resize(DOF_JOINTS);
-    for (int i = 0; i < DOF_JOINTS; i++)
-      desired_joint_state.position[i] = DEGREES_TO_RADIANS(home_pose[i]);
-    mutex->unlock();
+  double tmp;
+  mutex->lock();
+  desired_joint_state.position.resize(DOF_JOINTS);
+  for (int i = 0; i < DOF_JOINTS; i++) {
+    tmp = get_parameter(initialPosition[i]).as_double();
+    desired_joint_state.position[i] = DEGREES_TO_RADIANS(tmp);
+    RCLCPP_INFO(get_logger(), "home_pose [%d]=%f", i,  tmp);
   }
+  mutex->unlock();
+
   control_hand_ = false;
 
   printf("*************************************\n");
@@ -247,11 +234,13 @@ void AllegroNodePD::doIt(bool polling) {
 
 int main(int argc, char **argv) {
   auto clean_argv = rclcpp::init_and_remove_ros_arguments(argc, argv); 
-  AllegroNodePD allegroNode("allegro_hand_core_pd");
 
   bool polling = false;
   if (clean_argv.size() > 1 && clean_argv[1] == std::string("true")) {
     polling = true;
   }
+
+  bool is_sim = std::find(clean_argv.begin(), clean_argv.end(), "--sim") != clean_argv.end();
+  AllegroNodePD allegroNode("allegro_node_pd", is_sim);
   allegroNode.doIt(polling);
 }

@@ -11,7 +11,7 @@
 class AllegroNodePD : public AllegroNode {
 
  public:
-  AllegroNodePD(const std::string node_name);
+  AllegroNodePD(const std::string node_name, bool sim=false);
 
   ~AllegroNodePD();
 
