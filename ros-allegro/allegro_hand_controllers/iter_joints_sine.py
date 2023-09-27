@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rclpy
 import math
-from allegro_robot import AllegroRobot
+from allegro_hand_controllers.allegro_robot import AllegroRobot
 import threading
 rclpy.init()
 

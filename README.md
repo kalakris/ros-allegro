@@ -79,6 +79,22 @@ $ ros2 topic list
 /allegroHand/lib_cmd
 ```
 
+### Python Client
+```
+from allegro_hand_controllers.allegro_robot import AllegroRobot
+import threading
+
+# setup rosnode
+rclpy.init()
+hand = AllegroRobot(hand_topic_prefix='/allegroHand')
+threading.Thread(target=rclpy.spin, args=[hand]).start()
+
+# poll joint position and command
+init_pos, init_vel = hand.poll_joint_position(wait=True)
+hand.command_joint_position(pos)
+hand.disconnect() # poweroff
+```
+
 # BUILD Conda package
 * reference https://medium.com/robostack/cross-platform-conda-packages-for-ros-fa1974fd1de3
 

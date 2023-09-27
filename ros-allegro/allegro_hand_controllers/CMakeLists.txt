@@ -10,8 +10,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-find_package(allegro_hand_driver REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+find_package(ament_cmake REQUIRED)
+find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(allegro_hand_driver REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 include_directories(${allegro_hand_driver_INCLUDE_DIRS})
@@ -36,6 +39,14 @@ install(TARGETS
   allegro_node_pd
   # allegro_node_torque
   # allegro_node_velsat
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+install(PROGRAMS
+  freeze_joint.py
+  iter_joints_sine.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
