@@ -25,13 +25,20 @@ This repository and README is heavily based on Haozhi's Allegro ROS repository (
   ```
 
 
-### Install this repository and launch
+### Install from conda
+```
+mamba install -c tingfan -c robostack-staging ros-humble-allegro-hand-controllers
+```
+
+### Install this repository 
 
 ```
 git clone -b ros2_main https://github.com/0wu/ros-allegro.git
 colcon build
 source install/setup.bash
 ```
+
+### Launch
 Use following command to launch ROS node, if a serial number is reported, your hardware+driver is working.
 ```
 ros2 run allegro_hand_controllers allegro_node_pd
