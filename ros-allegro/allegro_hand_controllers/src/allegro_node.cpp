@@ -77,7 +77,7 @@ AllegroNode::AllegroNode(const std::string nodeName, bool sim /* = false */)
   }
 
   // Start ROS time
-  tstart = rclcpp::Clock(RCL_STEADY_TIME).now();
+  tstart = get_clock()->now();
   
   // Advertise current joint state publisher and subscribe to desired joint
   // states.
@@ -112,7 +112,7 @@ void AllegroNode::publishData() {
 void AllegroNode::updateController() {
 
   // Calculate loop time;
-  tnow = rclcpp::Clock{RCL_STEADY_TIME}.now();
+  tnow = get_clock()->now();
   dt = 1e-9 * (tnow - tstart).nanoseconds();
 
   // When running gazebo, sometimes the loop gets called *too* often and dt will
