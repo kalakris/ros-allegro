@@ -127,8 +127,9 @@ class AllegroRobot(Node):
             return False
 
         msg = JointState()  # Create and publish
+        msg.header.stamp = self.get_clock().now().to_msg()
         try:
-            msg.position = desired_pose
+            msg.position.fromlist(list(desired_pose))
             self.pub_joint.publish(msg)
             self.get_logger().debug("Published desired pose.")
             return True
