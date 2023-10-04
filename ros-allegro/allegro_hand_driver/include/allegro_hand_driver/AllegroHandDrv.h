@@ -48,7 +48,6 @@
 #include <list>
 #include <string>
 #include "AllegroHandDef.h"
-#include "ros/ros.h"
 
 namespace allegro
 {
@@ -59,7 +58,7 @@ public:
     AllegroHandDrv();
     ~AllegroHandDrv();
 
-    bool init(int mode = 0);                ///< initialize Allegro Hand driver and CAN channel
+    bool init(std::string CAN_CH, int mode = 0);                ///< initialize Allegro Hand driver and CAN channel
 
     void setTorque(double *torque);         ///< set desired joint torque
     void getJointInfo(double *position);    ///< get current joint position

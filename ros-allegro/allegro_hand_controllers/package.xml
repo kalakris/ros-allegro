@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
     <name>allegro_hand_controllers</name>
     <version>0.0.0</version>
     <description>The allegro_hand_controllers package</description>
@@ -9,27 +9,19 @@
     <license>BSD</license>
 
     <!-- dependencies -->
-    <buildtool_depend>catkin</buildtool_depend>
+    <buildtool_depend>ament_cmake</buildtool_depend>
+    <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-    <build_depend>allegro_hand_driver</build_depend>
-    <build_depend>bhand</build_depend>
-    <build_depend>libpcan</build_depend>
-    <build_depend>roscpp</build_depend>
-    <build_depend>sensor_msgs</build_depend>
-    <run_depend>allegro_hand_description</run_depend>
-    <run_depend>allegro_hand_driver</run_depend>
-    <run_depend>allegro_hand_parameters</run_depend>
-    <run_depend>bhand</run_depend>
-    <run_depend>joint_state_publisher</run_depend>
-    <run_depend>libpcan</run_depend>
-    <run_depend>robot_state_publisher</run_depend>
-    <run_depend>roscpp</run_depend>
-    <run_depend>sensor_msgs</run_depend>
-    <run_depend>xacro</run_depend>
+    <depend>allegro_hand_driver</depend>
+    <depend>rclcpp</depend>
+    <depend>rclpy</depend>
+    <depend>sensor_msgs</depend>
+    <!-- <run_depend>allegro_hand_description</run_depend> -->
+    <!-- <run_depend>allegro_hand_parameters</run_depend> -->
 
     <!-- The export tag contains other, unspecified, tags -->
     <export>
         <!-- Other tools can request additional information be placed here -->
-
+        <build_type>ament_cmake</build_type>
     </export>
 </package>

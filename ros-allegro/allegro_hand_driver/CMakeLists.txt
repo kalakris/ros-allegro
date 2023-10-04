@@ -1,64 +1,51 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(allegro_hand_driver)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  libpcan
-  roscpp
-  std_msgs
-)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-###################################
-## catkin specific configuration ##
-###################################
-
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES allegro_hand_driver
-  CATKIN_DEPENDS
-  libpcan
-  roscpp
-  std_msgs
-#  DEPENDS system_lib
-)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 
 ###########
 ## Build ##
 ###########
 
 include_directories(
-  ${catkin_INCLUDE_DIRS}
   include
 )
 
-set(CANDRV "SOCKETCAN" CACHE STRING "PEAKCAN|SOCKETCAN")
-if (CANDRV STREQUAL "PEAKCAN")
-  add_library(allegro_hand_driver
-    src/AllegroHandDrv.cpp
-    src/candrv/pcan.cpp
-  )
-elseif(CANDRV STREQUAL "SOCKETCAN")
-  add_library(allegro_hand_driver
-    src/AllegroHandDrv.cpp
-    src/candrv/socket_can.cpp
-  )
-else()
-  message(FATAL_ERROR "CANDRV must be PEAKCAN|SOCKETCAN" )
-endif()
+add_library(allegro_hand_driver
+  src/AllegroHandDrv.cpp
+  src/candrv/socket_can.cpp
+)
+
+ament_target_dependencies(allegro_hand_driver
+  rclcpp
+  std_msgs)
 #############
 ## Install ##
 #############
 
 install(TARGETS allegro_hand_driver
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+        EXPORT allegro_hand_driver_export
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin)
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-)
+install(
+  DIRECTORY include/${PROJECT_NAME}
+  DESTINATION include
+  FILES_MATCHING PATTERN "*.h")
+
+ament_export_targets(allegro_hand_driver_export HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_dependencies(std_msgs)
+
+ament_package()

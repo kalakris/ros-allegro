@@ -63,7 +63,7 @@ typedef char BYTE;
 typedef void* LPSTR;
 #include "candef.h"
 #include "candrv.h"
-#include "ros/ros.h" // for ROS_ERROR, ROS_INFO
+#include <rclcpp/rclcpp.hpp> // for RCLCPP_ERROR, RCLCPP_INFO
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -97,43 +97,43 @@ int canSentRTR(void* ch, int id, int blocking, int timeout_usec);
 /*========================================*/
 int socket_;
 void printMsg(const can_frame &msg) {
-  ROS_WARN("msg: {%X}, %c", msg.can_id, msg.can_dlc);
+  RCLCPP_WARN(rclcpp::get_logger(__FILE__), "msg: {%X}, %c", msg.can_id, msg.can_dlc);
 }
 int canInit(const char* device_id_)
 {
     int err;
     int i;
-    ROS_INFO("CAN: Initializing device");
+    RCLCPP_INFO(rclcpp::get_logger(__FILE__), "CAN: Initializing device");
     sockaddr_can addr;
     ifreq ifr;
     if ((socket_ = socket(PF_CAN, SOCK_RAW, CAN_RAW)) == -1) {
-        ROS_ERROR("Failed to open CAN socket errno:%d", errno);
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Failed to open CAN socket errno:%d", errno);
         return -1;
     }
     strcpy(ifr.ifr_name, device_id_);
     if (ioctl(socket_, SIOCGIFINDEX, &ifr) == -1) {
-        ROS_ERROR("Trouble finding CAN bus %s: %s", device_id_, strerror(errno));
-        ROS_ERROR("Failed to initialize CAN interface");
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Trouble finding CAN bus %s: %s", device_id_, strerror(errno));
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Failed to initialize CAN interface");
         return -1;
     };
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
-    ROS_INFO("%s at index %d", device_id_, ifr.ifr_ifindex);
+    RCLCPP_INFO(rclcpp::get_logger(__FILE__), "%s at index %d", device_id_, ifr.ifr_ifindex);
     if (bind(socket_, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        ROS_ERROR("Error binding CAN socket: %s", strerror(errno));
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Error binding CAN socket: %s", strerror(errno));
         return -1;
     }
     // Set socket non-blocking
     int flags = fcntl(socket_, F_GETFL);
     if (flags == -1) {
-        ROS_ERROR("Error getting CAN socket flags: %s", strerror(errno));
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Error getting CAN socket flags: %s", strerror(errno));
         return -1;
     }
     if (fcntl(socket_, F_SETFL, flags | O_NONBLOCK) != 0) {
-        ROS_ERROR("Error setting CAN socket non-blocking: %s", strerror(errno));
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Error setting CAN socket non-blocking: %s", strerror(errno));
         return -1;
     };
-    ROS_INFO("CAN: Clearing the CAN buffer");
+    RCLCPP_INFO(rclcpp::get_logger(__FILE__), "CAN: Clearing the CAN buffer");
     can_frame dummy_msg;
     for (i = 0; i < 100; i++) {
         read(socket_, &dummy_msg, sizeof(can_frame));
@@ -142,7 +142,7 @@ int canInit(const char* device_id_)
 }
 int canReadMsg(void* ch, int *id, int *len, unsigned char *data, int blocking, int timeout_usec){
     if (blocking || timeout_usec < 0) {
-        ROS_WARN("SOCKET CAN doesnot support blocking read, proceed with nonblocking");
+        RCLCPP_WARN(rclcpp::get_logger(__FILE__), "SOCKET CAN doesnot support blocking read, proceed with nonblocking");
     }
     can_frame msg;
     int result = read(socket_, &msg, sizeof(can_frame));
@@ -154,11 +154,11 @@ int canReadMsg(void* ch, int *id, int *len, unsigned char *data, int blocking, i
         return -1;
     }
     if (result != sizeof(can_frame)) {
-        ROS_ERROR("Read incomplete CAN frame.");
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Read incomplete CAN frame.");
     }
     if (msg.can_id & CAN_ERR_FLAG) {
         printMsg(msg);
-        ROS_ERROR("Recieved CAN error.");
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "Recieved CAN error.");
         return -1;
     }
     *id = (msg.can_id >> 2);
@@ -174,11 +174,11 @@ int canSendMsg(void* ch, int id, char len, unsigned char *data, int blocking, in
     int result = write(socket_, &msg, sizeof(can_frame));
     if (result != sizeof(can_frame))
     {
-        ROS_WARN("Failed to send CAN message: %s", strerror(errno));
+        RCLCPP_WARN(rclcpp::get_logger(__FILE__), "Failed to send CAN message: %s", strerror(errno));
         return -1;
     }
     if (blocking || timeout_usec < 0) {
-        ROS_WARN_ONCE("Socket CAN does not support blocking send, proceeed with nonblocking");
+        RCLCPP_WARN_ONCE(rclcpp::get_logger(__FILE__), "Socket CAN does not support blocking send, proceeed with nonblocking");
     }
     return 0;
 }
@@ -190,11 +190,11 @@ int canSentRTR(void* ch, int id, int blocking, int timeout_usec){
     int result = write(socket_, &msg, sizeof(can_frame));
     if (result != sizeof(can_frame))
     {
-        ROS_WARN("Failed to send CAN message: %s", strerror(errno));
+        RCLCPP_WARN(rclcpp::get_logger(__FILE__), "Failed to send CAN message: %s", strerror(errno));
         return -1;
     }
     if (blocking || timeout_usec < 0) {
-        ROS_WARN_ONCE("Socket CAN does not support blocking send, proceeed with nonblocking");
+        RCLCPP_WARN_ONCE(rclcpp::get_logger(__FILE__), "Socket CAN does not support blocking send, proceeed with nonblocking");
     }
     return 0;
 }
@@ -203,17 +203,17 @@ int canSentRTR(void* ch, int id, int blocking, int timeout_usec){
 /*========================================*/
 int command_can_open_with_name(void*& ch, const char* dev_name)
 {
-    ROS_INFO("CAN: Opening device on channel [%s]", dev_name);
+    RCLCPP_INFO(rclcpp::get_logger(__FILE__), "CAN: Opening device on channel [%s]", dev_name);
     return canInit(dev_name);
 }
 int command_can_open(void* ch)
 {
-    ROS_ERROR("CAN: Error! Unsupported function call, can_open(void*&)");
+    RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "CAN: Error! Unsupported function call, can_open(void*&)");
     return -1;
 }
 int command_can_open_ex(void* ch, int type, int index)
 {
-    ROS_ERROR("CAN: Error! Unsupported function call, can_open(void*&, int, int)");
+    RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "CAN: Error! Unsupported function call, can_open(void*&, int, int)");
     return -1;
 }
 int command_can_flush(void* ch)
@@ -233,7 +233,7 @@ int command_can_close(void* ch)
     int err;
     err = close(socket_);
     if (err) {
-        ROS_ERROR("CAN: Error in CAN_Close()");
+        RCLCPP_ERROR(rclcpp::get_logger(__FILE__), "CAN: Error in CAN_Close()");
         return -1;
     }
     return 0; // PCAN_ERROR_OK

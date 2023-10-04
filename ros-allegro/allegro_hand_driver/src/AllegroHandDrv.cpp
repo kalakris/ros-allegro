@@ -46,9 +46,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <string>
-#include "ros/ros.h"
+#include <rclcpp/rclcpp.hpp>
 #include "candrv/candrv.h"
 #include "allegro_hand_driver/AllegroHandDrv.h"
+#include "unistd.h"
 
 using namespace std;
 
@@ -77,16 +78,16 @@ AllegroHandDrv::AllegroHandDrv()
     , _curr_position_get(0)
     , _emergency_stop(false)
 {
-    ROS_INFO("AllegroHandDrv instance is constructed.");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "AllegroHandDrv instance is constructed.");
 }
 
 AllegroHandDrv::~AllegroHandDrv()
 {
     if (_can_handle != 0) {
-        ROS_INFO("CAN: System Off");
+        RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: System Off");
         CANAPI::command_set_period(_can_handle, 0);
         usleep(10000);
-        ROS_INFO("CAN: Close CAN channel");
+        RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: Close CAN channel");
         CANAPI::command_can_close(_can_handle);
     }
 }
@@ -100,14 +101,13 @@ static inline std::string &rtrim(std::string &s)
     return s;
 }
 
-bool AllegroHandDrv::init(int mode)
+bool AllegroHandDrv::init(std::string CAN_CH, int mode)
 {
-    string CAN_CH;
-    ros::param::get("~comm/CAN_CH", CAN_CH);
+    // ros::param::get("~comm/CAN_CH", CAN_CH);
     rtrim(CAN_CH);  // Ensure the ROS parameter has no trailing whitespace.
 
     if (CAN_CH.empty()) {
-        ROS_ERROR("Invalid (empty) CAN channel, cannot proceed. Check PCAN comms.");
+        RCLCPP_ERROR(rclcpp::get_logger("allegro_hand_drv"), "Invalid (empty) CAN channel, cannot proceed. Check PCAN comms.");
         return false;
     }
 
@@ -116,31 +116,31 @@ bool AllegroHandDrv::init(int mode)
         return false;
     }
 
-    ROS_INFO("CAN: Flush CAN receive buffer");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: Flush CAN receive buffer");
     CANAPI::command_can_flush(_can_handle);
     usleep(100);
 
-    ROS_INFO("CAN: System Off");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: System Off");
     CANAPI::command_servo_off(_can_handle);
     usleep(100);
 
-    ROS_INFO("CAN: Request Hand Information");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: Request Hand Information");
     CANAPI::request_hand_information(_can_handle);
     usleep(100);
 
-    ROS_INFO("CAN: Request Hand Serial");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: Request Hand Serial");
     CANAPI::request_hand_serial(_can_handle);
     usleep(100);
 
-    ROS_INFO("CAN: Setting loop period(:= 3ms) and initialize system");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: Setting loop period(:= 3ms) and initialize system");
     short comm_period[3] = {3, 0, 0}; // millisecond {position, imu, temperature}
     CANAPI::command_set_period(_can_handle, comm_period);
 
-    ROS_INFO("CAN: System ON");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: System ON");
     CANAPI::command_servo_on(_can_handle);
     usleep(100);
 
-    ROS_INFO("CAN: Communicating");
+    RCLCPP_INFO(rclcpp::get_logger("allegro_hand_drv"), "CAN: Communicating");
 
     return true;
 }
@@ -161,7 +161,7 @@ int AllegroHandDrv::writeJointTorque()
     _writeDevices();
 
     if (_emergency_stop) {
-        ROS_ERROR("Emergency stop in writeJointTorque()");
+        RCLCPP_ERROR(rclcpp::get_logger("allegro_hand_drv"), "Emergency stop in writeJointTorque()");
         return -1;
     }
 
@@ -199,7 +199,7 @@ void AllegroHandDrv::setTorque(double *torque)
         }
     }
     else {
-        ROS_ERROR("CAN: Can not determine proper finger CAN channels. Check the Allegro Hand version number in 'zero.yaml'");
+        RCLCPP_ERROR(rclcpp::get_logger("allegro_hand_drv"), "Can not determine proper finger CAN channels. Check the Allegro Hand version number in 'zero.yaml'");
         return;
     }
 }
@@ -266,7 +266,7 @@ void AllegroHandDrv::_parseMessage(int id, int len, unsigned char* data)
     {
         case ID_RTR_HAND_INFO:
         {
-            printf(">CAN(%d): AllegroHand hardware version: 0x%02x%02x\n", _can_handle, data[1], data[0]);
+            printf(">CAN(%x): AllegroHand hardware version: 0x%02x%02x\n", _can_handle, data[1], data[0]);
             printf("                      firmware version: 0x%02x%02x\n", data[3], data[2]);
             printf("                      hardware type: %d(%s)\n", data[4], (data[4] == 0 ? "right" : "left"));
             printf("                      temperature: %d (celsius)\n", data[5]);
@@ -362,7 +362,7 @@ void AllegroHandDrv::_parseMessage(int id, int len, unsigned char* data)
         }
             break;
         default:
-            ROS_WARN("unknown command %d, len %d", id, len);
+            RCLCPP_WARN(rclcpp::get_logger("allegro_hand_drv"), "unknown command %d, len %d", id, len);
             for(int nd=0; nd<len; nd++)
                 printf("%d \n ", data[nd]);
             return;
