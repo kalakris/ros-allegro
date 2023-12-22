@@ -16,8 +16,12 @@ find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(allegro_hand_driver REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(bhand REQUIRED)
 
-include_directories(${allegro_hand_driver_INCLUDE_DIRS})
+include_directories(
+  ${allegro_hand_driver_INCLUDE_DIRS}
+  ${bhand_INCLUDE_DIRS}
+)
 
 add_library(allegro_node STATIC src/allegro_node.cpp)
 ament_target_dependencies(
@@ -29,14 +33,18 @@ add_executable(allegro_node_pd src/allegro_node_pd.cpp)
 target_link_libraries(allegro_node_pd allegro_node)
 ament_target_dependencies(allegro_node_pd rclcpp sensor_msgs allegro_hand_driver)
 
+add_executable(allegro_node_pd_feedforward src/allegro_node_pd_feedforward.cpp)
+target_link_libraries(allegro_node_pd_feedforward allegro_node)
+ament_target_dependencies(allegro_node_pd_feedforward rclcpp sensor_msgs allegro_hand_driver bhand)
+
 #############
 ## Install ##
 #############
 
 install(TARGETS
   allegro_node
-  # allegro_node_grasp
   allegro_node_pd
+  allegro_node_pd_feedforward
   # allegro_node_torque
   # allegro_node_velsat
   DESTINATION lib/${PROJECT_NAME}

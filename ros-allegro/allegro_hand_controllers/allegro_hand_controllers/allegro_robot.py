@@ -178,6 +178,66 @@ class AllegroRobot(Node):
             )
             return False
 
+
+    def command_joint_positions_and_torques(self, desired_pose, desired_torques):
+        """
+        Command a specific desired hand pose and feedforward torques.
+
+        The desired pose and torques must be the correct dimensionality
+        (self._num_joints). No bounds checking happens for pose or torques.
+
+        This command will only work with the allegro_node_pd_feedforward
+        controller. It servos the desired pose using PD control, and adds the
+        feedforward torques on top of it at every control cycle.
+        
+        :param desired_pose: The desired joint configurations.
+        :param desired_torques: The desired joint torques.
+        :return: True if pose+torque is published, False otherwise.
+        """
+
+        # Check that the desired pose can have len() applied to it, and that
+        # the number of dimensions is the same as the number of hand joints.
+        if (
+            not hasattr(desired_pose, "__len__")
+            or len(desired_pose) != self._num_joints
+        ):
+            self.get_logger().warn(
+                "Desired pose must be a {}-d array: got {}.".format(
+                    self._num_joints, desired_pose
+                )
+            )
+            return False
+        
+        # Check that the desired torque vector can have len() applied to it,
+        # and that the number of dimensions is the same as the number of
+        # joints. This prevents passing singletons or incorrectly-shaped lists
+        # to the message creation (which does no checking).
+        if (
+            not hasattr(desired_torques, "__len__")
+            or len(desired_torques) != self._num_joints
+        ):
+            self.get_logger().warn(
+                "Desired torques must be a {}-d array: got {}.".format(
+                    self._num_joints, desired_torques
+                )
+            )
+            return False
+
+
+        msg = JointState()  # Create and publish
+        msg.header.stamp = self.get_clock().now().to_msg()
+        try:
+            msg.position.fromlist(list(desired_pose))
+            msg.effort = desired_torques
+            self.pub_joint.publish(msg)
+            self.get_logger().debug("Published desired pose.")
+            return True
+        except Exception:
+            self.get_logger().error(traceback.format_exc())
+            self.get_logger.warn("Incorrect type for desired pose: {}.".format(desired_pose))
+            return False
+
+
     def poll_joint_position(self, wait=False):
         """Get the current joint positions of the hand.
 

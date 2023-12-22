@@ -16,6 +16,7 @@
     <depend>rclcpp</depend>
     <depend>rclpy</depend>
     <depend>sensor_msgs</depend>
+    <depend>bhand</depend>
     <!-- <run_depend>allegro_hand_description</run_depend> -->
     <!-- <run_depend>allegro_hand_parameters</run_depend> -->
 
