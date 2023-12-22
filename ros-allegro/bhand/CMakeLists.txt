@@ -20,10 +20,13 @@ find_library(BHAND_LIB
 
 # Make a tricky BHand target that just copies the .so binary file into the
 # output directory.
-add_library(BHand ${BHAND_LIB})
+add_library(BHand SHARED ${BHAND_LIB})
 add_custom_command(
   TARGET BHand
-  POST_BUILD COMMAND cp ${BHAND_LIB} lib)
+  POST_BUILD
+  DEPENDS ${BHAND_LIB}
+  COMMAND cp ${BHAND_LIB} $<TARGET_SONAME_FILE:BHand>
+  COMMAND touch $<TARGET_SONAME_FILE:BHand>)
 set_target_properties(BHand PROPERTIES LINKER_LANGUAGE CXX)
 
 #############
@@ -32,7 +35,7 @@ set_target_properties(BHand PROPERTIES LINKER_LANGUAGE CXX)
 
 ## Mark header files for installation
 install(
-  DIRECTORY include/bhand/
+  DIRECTORY include/
   DESTINATION include
   FILES_MATCHING PATTERN "*.h"
 )
@@ -46,6 +49,5 @@ install(TARGETS BHand
 
 ament_export_targets(bhand_export HAS_LIBRARY_TARGET)
 ament_export_include_directories(include)
-#ament_export_dependencies(std_msgs)
 
 ament_package()
