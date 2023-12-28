@@ -18,9 +18,10 @@ print("Freezing initial joint positions")
 hand.command_joint_position(pos)
 time.sleep(2)
 
-print("Applying FF torque")
-torques = [0.1] * 16
-hand.command_joint_positions_and_torques(pos, torques)
+while True:
+    pos, vel = hand.poll_joint_position(wait=True)
+    torques = [0.0] * 16
+    hand.command_joint_positions_and_torques(pos, torques)
 
 input('press any key to turn robot off')
 hand.disconnect()

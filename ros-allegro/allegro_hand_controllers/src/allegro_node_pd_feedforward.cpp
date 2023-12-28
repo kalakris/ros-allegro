@@ -125,7 +125,7 @@ void AllegroNodePDFeedForward::libCmdCallback(const std_msgs::msg::String::Share
   }
 }
 
-void AllegroNodePDFeedForward::setJointCallback(const sensor_msgs::msg::JointState::SharedPtr msg) {
+void AllegroNodePDFeedForward::setJointCallback([[maybe_unused]] const sensor_msgs::msg::JointState::SharedPtr msg) {
   RCLCPP_WARN_EXPRESSION(get_logger(), !control_hand_, "Setting control_hand_ to True because of "
                 "received JointState message");
   control_hand_ = true;
@@ -144,32 +144,32 @@ void AllegroNodePDFeedForward::computeDesiredTorque() {
     return;
   }
 
-  // // Sanity/defensive check: if *both* position and torques are set in the
-  // // message, do nothing.
-  // if (desired_joint_state.position.size() > 0 &&
-  //     desired_joint_state.effort.size() > 0) {
-  //   RCLCPP_WARN(get_logger(), "Error: both positions and torques are specified in the desired "
-  //                    "state. You cannot control both at the same time.");
-  //   return;
-  // }
+  // Compute control torque using Bhand library.
+  pBHand->SetJointPosition(current_position);
+  // TODO: Update this rotation matrix based on the Franka wrist pose.
+  double rotation_matrix[9] = 
+    {1.0, 0.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0};
+  pBHand->SetOrientation(rotation_matrix);
+  pBHand->UpdateControl((double) frame * ALLEGRO_CONTROL_TIME_INTERVAL);
+
+  // Initialize desired torque using the bHand gravity compensation torques.
+  pBHand->GetJointTorque(desired_torque);
 
   {
     mutex->lock();
-    for (int i = 0; i < DOF_JOINTS; i++) {
-      desired_torque[i] = 0.0;
-    }
 
     if (desired_joint_state.position.size() == DOF_JOINTS) {
-      // Control joint positions: compute the desired torques (PD control).
+      // Add PD control torques to servo joint positions.
       double error;
       for (int i = 0; i < DOF_JOINTS; i++) {
-//        error = desired_joint_state.position[i] - current_position_filtered[i];
         error = desired_joint_state.position[i] - current_position[i];
-        desired_torque[i] = 1.0/canDevice->torqueConversion() *
+        desired_torque[i] += 1.0/canDevice->torqueConversion() *
                 (k_p[i] * error - k_d[i] * current_velocity[i]);
-        desired_torque[i] = max(min(desired_torque[i], 0.5), -0.5);
       }
     }
+
     // Efforts can be added on to the PD command computed above.
     if (desired_joint_state.effort.size() > 0) {
       // Add on desired torques.
@@ -177,6 +177,12 @@ void AllegroNodePDFeedForward::computeDesiredTorque() {
         desired_torque[i] += desired_joint_state.effort[i];
       }
     }
+
+    // Saturate the torques.
+    for (int i = 0; i < DOF_JOINTS; i++) {
+      desired_torque[i] = max(min(desired_torque[i], 0.5), -0.5);
+    }
+
     mutex->unlock();
   }
 }
@@ -192,7 +198,10 @@ void AllegroNodePDFeedForward::initController(const std::string &whichHand) {
     RCLCPP_WARN(get_logger(), "CTRL: Right Allegro Hand controller initialized.");
   }
   pBHand->SetTimeInterval(ALLEGRO_CONTROL_TIME_INTERVAL);
-  pBHand->SetMotionType(eMotionType_NONE);
+  
+  // Just use the BHand library to compute gravity compensation torques,
+  // since we do our own PD control.
+  pBHand->SetMotionType(eMotionType_GRAVITY_COMP);
 
   // set gains_pd via gains_pd.yaml or to default values
   for (int i = 0; i < DOF_JOINTS; i++) {
